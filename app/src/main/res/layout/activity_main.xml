@@ -4,9 +4,13 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="#991CC6A2"
     tools:context=".MainActivity">
 
    <TextView
+       android:textStyle="bold"
+       android:textSize="20sp"
+       android:textColor="#ff0000"
        android:id="@+id/tv_version"
        android:text="当前的版本是"
        android:layout_centerInParent="true"

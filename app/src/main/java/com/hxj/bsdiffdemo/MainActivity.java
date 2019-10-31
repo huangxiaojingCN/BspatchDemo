@@ -1,13 +1,17 @@
 package com.hxj.bsdiffdemo;
 
 import android.Manifest;
-import android.content.Context;
+import android.content.Intent;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
+import android.net.Uri;
 import android.os.AsyncTask;
+import android.os.Build;
 import android.os.Environment;
+import android.os.Handler;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
+import android.support.v4.content.FileProvider;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -52,14 +56,14 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void onClick(View v) {
-                if (ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.READ_EXTERNAL_STORAGE)
+                if (ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.WRITE_EXTERNAL_STORAGE)
                         != PackageManager.PERMISSION_GRANTED) {
                     if (ActivityCompat.shouldShowRequestPermissionRationale(MainActivity.this,
-                            Manifest.permission.READ_EXTERNAL_STORAGE)) {
+                            Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
                         // 自定义提示框.
                     } else {
                         ActivityCompat.requestPermissions(MainActivity.this,
-                                new String[] {Manifest.permission.READ_EXTERNAL_STORAGE},
+                                new String[] {Manifest.permission.WRITE_EXTERNAL_STORAGE},
                                 100);
                     }
                 } else {
@@ -101,14 +105,15 @@ public class MainActivity extends AppCompatActivity {
             }
 
             if (!newApkFileExist) {
-                Toast.makeText(MainActivity.this, "创建文件失败", Toast.LENGTH_SHORT).show();
+                Log.e("James", "doInBackground new apk file 文件不存在.");
                 return null;
             }
 
             // 服务器下载后的补丁文件
             File patchFile = new File(Environment.getExternalStorageDirectory(), "test.patch");
             if (!patchFile.exists()) {
-                Toast.makeText(MainActivity.this, "暂未发现新版本", Toast.LENGTH_SHORT).show();
+                Log.e("James", "doInBackground 暂未发现新版本.");
+                return null;
             }
 
             // 获取新的 apk 安装路径.
@@ -124,9 +129,25 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         protected void onPostExecute(File file) {
-            super.onPostExecute(file);
+
+            if (file == null || !file.exists()) return;
 
             Log.i("James", "onPostExecute: " + file.getTotalSpace());
+            Intent intent = new Intent(Intent.ACTION_VIEW);
+            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            if (Build.VERSION.SDK_INT >= 24) {
+                //Android 7.0及以上
+                // 参数2 清单文件中provider节点里面的authorities ; 参数3  共享的文件,即apk包的file类
+                Uri apkUri = FileProvider.getUriForFile(MainActivity.this,
+                        getApplicationInfo().packageName + ".provider", file);
+                //对目标应用临时授权该Uri所代表的文件
+                intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                intent.setDataAndType(apkUri, "application/vnd.android.package-archive");
+            } else {
+                intent.setDataAndType(Uri.fromFile(file),
+                        "application/vnd.android.package-archive");
+            }
+            startActivity(intent);
         }
     }
 }
